@@ -41,7 +41,8 @@ class Github extends Resource
     /**
      * Basic url of the Github API.
      */
-    const githubUrl = 'https://api.github.com/';
+    const githubApiUrl = 'https://api.github.com/';
+    const githubUrl = 'https://github.com/';
 
     /**
      * Return the Version object with informations about the newest version of this SDK.
@@ -81,14 +82,17 @@ class Github extends Resource
     public function getLatestProjectVersion($username, $project)
     {
         try {
-            $content = $this->getContent(self::githubUrl.'repos/'.$username.'/'.$project.'/releases/latest');
+            $content = $this->getContent(self::githubApiUrl.'repos/'.$username.'/'.$project.'/releases/latest');
         } catch (NotFoundException $ex) {
             throw new VersionNotFoundException($username.'/'.$project);
         }
         if (!is_array($content)) {
             throw new TypeNotCompatibleException(gettype($content));
         }
-        $version = new Version($content['tag_name'], $content['assets'][0]['browser_download_url']);
+        $browser_download_url = (isset($content['assets']) && isset($content['assets'][0]) && isset($content['assets'][0]['browser_download_url']))
+             ? $content['assets'][0]['browser_download_url']
+             : self::githubUrl.$username.'/'.$project.'/archive/master.zip';
+        $version = new Version($content['tag_name'], $browser_download_url);
         $version->setUrl($content['url'])
                 ->setCreated(new DateTime($content['created_at']))
                 ->setPublished(new DateTime($content['published_at']));
